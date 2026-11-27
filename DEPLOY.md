@@ -173,12 +173,14 @@ press Home and run the script again. Still nothing: *Developer options → Revok
   *System Settings → Privacy & Security → Local Network* → allow your terminal app; or `adb kill-server` and run
   `adb nodaemon server &` in the same terminal, then retry. (From Free My TV's guide.)
 - Some newer firmware only offers *Wireless debugging*: turn it on in Developer options, choose *Pair device with
-  pairing code*, run `adb pair <IP:port shown> <code>`, then `adb connect <IP:port shown>`, then `adb tcpip 5555`;
-  after that the scripts work with `--ip <IP>` until the next TV restart.
+  pairing code* and run `adb pair <IP:pairing port> <code>` with what that dialog shows; then
+  `adb connect <IP:port>` with the (different) port on the *Wireless debugging* screen itself, then
+  `adb -s <IP:port> tcpip 5555`. After that the scripts work with `--ip <IP>` until the next TV restart.
 
-**Install hangs.** Look at the TV: Play Protect is asking (*More details → Install anyway*). `INSTALL_FAILED_UPDATE_
-INCOMPATIBLE`: a Free My TV signed with another key is on the TV — *Free My TV → Home Screen → Original*, uninstall it
-(*Settings → Apps*), run again.
+**Install hangs.** Look at the TV: Play Protect is asking (*More details → Install anyway*).
+
+**`INSTALL_FAILED_UPDATE_INCOMPATIBLE`:** a Free My TV signed with another key is on the TV (the official release, or
+one you built yourself) — *Free My TV → Home Screen → Original*, uninstall it (*Settings → Apps*), run again.
 
 **The launcher doesn't stick / the switch never happens** (install-launcher.sh waits, then says so — nothing is
 broken, Google TV is still Home):
