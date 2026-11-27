@@ -66,6 +66,7 @@ expect 'awk "/am start -W -n io.freemytv/{a=NR} /SWITCHED/{s=NR} END{exit !(a &&
 expect 'grep -q "Home still opens the stock home screen" "$TMP/out.txt"' "checked stock Home still answered before the switch"
 expect 'grep -q "exec-in content write" "$FAKE_TV/adb.log"' "config pushed"
 expect 'grep -q "pm grant io.freemytv android.permission.RECORD_AUDIO" "$FAKE_TV/adb.log"' "microphone granted for JARVIS"
+expect 'grep "appops set io.freemytv" "$FAKE_TV/adb.log" | grep -q "appops write-settings"' "TclAppBoot allow saved to disk (write-settings)"
 expect '! grep -q "pm disable-user --user 0 com.google.android.apps.tv.launcherx" "$FAKE_TV/adb.log"' "the Mac never disabled the stock launcher itself"
 rc=$(run "$ROOT/scripts/debloat.sh" "${IP[@]}"); expect '[ "$rc" = 0 ]' "debloat rc=$rc: $(tail -5 "$TMP/out.txt")"
 expect '[ "$(state com.tcl.smartalexa)" = disabled-user ]' "smartalexa off"

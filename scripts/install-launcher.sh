@@ -74,7 +74,11 @@ ok "$LAUNCHER_PKG $VER"
 
 step "2/6  Letting it run in the background (TCL's TclAppBoot blocks that by default)"
 # Free My TV README "On TCL TVs": AUTO_START on some firmware, APP_AUTO_START on others; neither on some (fine).
-AO="$(tv_do shell "appops set $LAUNCHER_PKG AUTO_START allow || appops set $LAUNCHER_PKG APP_AUTO_START allow")"
+# `appops write-settings` saves it now: TCL app-ops reach the disk lazily, and a restart soon after the `set` drops it
+# and TclAppBoot blocks the watchdog/boot check again (CleanYourTV docs/TROUBLESHOOTING.md, "App-ops reach the disk
+# lazily", @ be6087056a; confirmed on a G10 C69B over three reboots, examples/tcl-g10-google-tv L204-207 — the
+# platform of the owner's 50Q651G).
+AO="$(tv_do shell "appops set $LAUNCHER_PKG AUTO_START allow || appops set $LAUNCHER_PKG APP_AUTO_START allow; appops write-settings")"
 case "$AO" in *"Unknown operation"*) say "  this firmware has no auto-start block (nothing to allow)";; *) ok "allowed" ;; esac
 
 # JARVIS's voice mode needs the microphone. Granted now so the TV never has to ask (the classic build doesn't request it).
