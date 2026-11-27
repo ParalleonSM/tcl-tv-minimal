@@ -117,7 +117,7 @@ else
   SAVER="$(sh_read "$LAUNCHER_PKG/.Screensaver" settings get secure screensaver_components | head -n 1)"
   case "$SAVER" in
     *"$LAUNCHER_PKG/"*)
-      DEF="$(sh_read 'com.google.android.apps.tv.dreamx/.DreamService' settings get secure screensaver_default_component | head -n 1)"
+      DEF="$(sh_read '<value read from the TV>' settings get secure screensaver_default_component | head -n 1)"
       if [ -n "$DEF" ] && [ "$DEF" != null ]; then tv_do shell settings put secure screensaver_components "$DEF" >/dev/null; ok "screensaver -> $DEF"
       else tv_do shell settings delete secure screensaver_components >/dev/null; ok "screensaver -> the TV's default"; fi ;;
   esac

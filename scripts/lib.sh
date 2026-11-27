@@ -36,7 +36,7 @@ else
 fi
 say()  { printf '%s\n' "$*" >&3; }
 step() { printf '\n%s==> %s%s\n' "$C_B" "$*" "$C_0" >&3; }
-ok()   { printf '%s  ok%s  %s\n' "$C_G" "$C_0" "$*" >&3; }
+ok()   { if [ "${DRY_RUN:-0}" -eq 1 ]; then printf '%s  ok%s  (dry-run) %s\n' "$C_G" "$C_0" "$*" >&3; else printf '%s  ok%s  %s\n' "$C_G" "$C_0" "$*" >&3; fi; }
 warn() { printf '%swarn%s  %s\n' "$C_Y" "$C_0" "$*" >&3; }
 die()  { printf '%sSTOP%s  %s\n' "$C_R" "$C_0" "$1" >&2; exit "${2:-1}"; }
 is_dry() { [ "$DRY_RUN" -eq 1 ]; }
@@ -306,9 +306,15 @@ shq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 
 # control_call '<json command>' [dry-run reply] -> prints the JSON reply ("" if none).
 control_call() {
-  local out dflt='{"ok":true}'
+  local out dflt='{"ok":true}' cmd
   [ $# -ge 2 ] && dflt="$2"
-  out="$(sh_read "$dflt" "content call --uri $CONTROL_URI --method command --arg $(shq "$1")")"
+  cmd="content call --uri $CONTROL_URI --method command --arg $(shq "$1")"
+  if is_dry; then   # a launcher command may change things (jarvis off, volume…): not tagged read-only
+    printf '%s[dry-run]%s %s   %s# launcher command%s\n' "$C_D" "$C_0" "$(show_cmd -s "$TV" shell "$cmd")" "$C_D" "$C_0" >&3
+    printf '%s\n' "$dflt"
+    return 0
+  fi
+  out="$(sh_read "" "$cmd")"
   # The TV prints: Result: Bundle[{reply={"ok":true,...}}]
   case "$out" in
     *"reply="*) printf '%s\n' "$out" | tr -d '\n' | sed -e 's/^.*reply=//' -e 's/}][[:space:]]*$//'; echo ;;

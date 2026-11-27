@@ -106,7 +106,7 @@ Replies are one JSON object: `ok`, `say` (a plain sentence) and facts. JARVIS tu
 - **Listens** with the TV's speech recognizer (falls back to Google's speech screen, then to typing), **matches** the
   phrase against the registry, **runs** it, **answers aloud** (TTS, en-GB, polite, "sir", status reports, a little
   wit). OK = listen again, ▼ = type, Back = close.
-- **Separable:** JARVIS lives in `launcher/app/src-jarvis/` and reaches the home screen through six hooks
+- **Separable:** JARVIS lives in `launcher/app/src-jarvis/` and reaches the home screen through a few small hooks
   (`JarvisHooks`); its HUD is a separate view over the home screen. Off → every hook is a no-op → the classic layout,
   exactly. The classic build swaps in empty hooks (`src-classic/`).
 - **Honest limit:** this is a phrase matcher with spoken templates, running on the TV. It is not an LLM, and a full

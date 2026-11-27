@@ -41,7 +41,7 @@ HOMES="$(sh_read "$GOOGLE_HOME" cmd package query-activities --brief -a android.
   | grep -oE '^ *[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+' | sed 's/^ *//' | sort -u || true)"
 say "  apps that answer Home:"
 printf '%s\n' "$HOMES" | sed '/^$/d; s/^/    /' >&3
-SAVER="$(sh_read 'com.google.android.apps.tv.dreamx/.DreamService' settings get secure screensaver_components | head -n 1)"
+SAVER="$(sh_read '<value read from the TV>' settings get secure screensaver_components | head -n 1)"
 say "  screensaver        $SAVER"
 
 step "Launcher package"
