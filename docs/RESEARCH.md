@@ -39,6 +39,14 @@ memory. Where sources disagree, this package takes the safer side and says so.
 | LIVV | livvaa/TCL-Google-TV-Debloat-Optimizer `tcl-debloat-optimizer.ps1` | `a10680aa23` | TCL Google TV script (aggressive: uninstalls, incl. setup/providers) |
 | ADRI | AdrianSantamariaR/tcl-tv-debloat `data/catalog.json` | `9a05dbd73e` | TCL package catalog with labels and a `protected` flag |
 
+Model check for the owner's **TCL 50Q651G** (read 2026-11-27; see NIGHT_REPORT.md "50Q651G verification"):
+
+| Key | Source | Read | What it is |
+|---|---|---|---|
+| PR78 | Gathin23/cleanyourtv PR #78, `examples/tcl-q651g-ca-google-tv/debloat.txt` (via `gh api`) | `b74bb63c2b` | one owner's list for a 50Q651G-CA (Canada), closed without merge 2026-10-19 |
+| Q651 | Gathin23/cleanyourtv `examples/tcl-g10-google-tv/debloat.txt` L45-55, L208-217, L252-264 | `be6087056a` | notes from a real US 55Q651G on the same G10 list |
+| AOPS | Gathin23/cleanyourtv `docs/TROUBLESHOOTING.md` ("App-ops reach the disk lazily") | `be6087056a` | TclAppBoot op lost on restart without `appops write-settings` |
+
 IMAG and LIVV are used only to **corroborate** that a package exists on TCL TVs and is considered bloat — never as
 evidence that something is safe (both remove things FMTV/CYTV say must stay). Safety comes from FMTV's `PROTECTED`,
 ADRI's `protected`, and CYTV's per-model "keep" notes and guards.

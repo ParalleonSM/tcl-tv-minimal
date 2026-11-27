@@ -198,6 +198,26 @@ broken, Google TV is still Home):
 3. Only the HDMI input is black? `scripts/rollback.sh` (the debloat part) — nothing on the list should touch inputs
    (they're checked), but it brings everything back.
 
+**On the TCL 50Q651G (Q6) — model notes.** From two owner reports on this model line: a 50Q651G-CA (CleanYourTV PR
+#78, not merged) and a 55Q651G (CleanYourTV `examples/tcl-g10-google-tv`). None of this was tested on your set.
+- `detect.sh` will show model **Smart TV Pro** or similar: TCL doesn't put the retail model in what ADB reads. It
+  recognizes the 50Q651G's platform instead (device `G10`, product `G10_4K_US_NF`, Android 12).
+- **Black screen on Home** with Google TV's home off is Google's setup app (`setupwraith`) taking Home — both reports
+  saw it. Free My TV's switch turns that app off itself, after its Wi-Fi check, so never disable Google TV's home by
+  hand. Black anyway: *Black screen* above (`rollback.sh --force`).
+- **Wi-Fi saved by the setup app**: on other `G10_4K_US_NF` sets (55QM5K, S551G) it was. `detect.sh` checks this
+  (its "Wi-Fi owner check"); forget and rejoin the network before the switch.
+- **Phone casting** can stop with the setup app off ("Untrusted device"; CleanYourTV #3446, a 65T69C — it still worked
+  on a 55QM5K). If you cast, test it after the switch; *Home Screen → Original* brings it back.
+- **After a restart the watchdog or boot check seems dead:** TCL's `TclAppBoot` lost the auto-start permission.
+  `install-launcher.sh` now saves it (`appops write-settings`); by hand: `adb shell "appops set io.freemytv AUTO_START
+  allow || appops set io.freemytv APP_AUTO_START allow; appops write-settings"`.
+- **The 50Q651G-CA dropped off Wi-Fi/ADB for about a minute, twice in one session**, with no reboot. A script saying
+  it can't reach the TV: wait a minute, run it again.
+- Kept on purpose for this model: TCL Live (`channelplus`, Live TV's only source with no antenna), the remote's mic
+  (`tv.remote.service`), the YouTube button's route (`partnercustomizer`), firmware updates (`ttvs`), AirPlay (both
+  halves).
+
 **JARVIS doesn't hear me.** Hold Back a bit longer (it needs the key to repeat). If it says speech isn't available,
 it'll offer typing; check *Settings → Apps → Free My TV → Permissions → Microphone*. Wake keys can be added in
 `config.json` (`jarvis.wake.keys`) if your remote's other buttons reach the home screen.

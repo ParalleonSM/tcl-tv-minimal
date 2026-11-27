@@ -112,6 +112,57 @@ conversational JARVIS can't run on the TV alone. The backbone is built so the ne
    (a `fallback` hook in `JarvisActivity.answer`, e.g. a queued file the agent polls over adb) instead of
    "I didn't catch that".
 
+## 50Q651G verification (follow-up, 2026-11-26 ~23:30 CST)
+
+The owner's set is a **TCL 50Q651G** (50", Q6 series). Checked against the sources below; nothing was run on the set.
+
+**Sources.** WebSearch and WebFetch weren't allowed on the VM tonight, so TCL's own spec/support pages, XDA and TCL's
+community forum were **not read**. What was read: (1) CleanYourTV PR #78 via `gh api`, a 50Q651G-CA debloat list
+(github.com/Gathin23/cleanyourtv/pull/78, head `b74bb63c2b`, closed without merge, one owner's report); (2) CleanYourTV
+`examples/tcl-g10-google-tv/debloat.txt` @ `be6087056a`, notes from a real US **55Q651G** (L45-55, L208-217, L252-264);
+(3) CleanYourTV `docs/TROUBLESHOOTING.md` and `docs/devices/tcl-*.md` @ `be6087056a`; (4) Free My TV `HomeMode.java`
+@ `0e33f168b8` and issues #277, #364 and #375 (TCL background killers). No Free My TV issue mentions Q6, Q651G or
+G10_4K_US_NF.
+
+**Confirmed (by those sources, for this model line):**
+- **Google TV on Android 12**, not Roku/Fire: 50Q651G-CA is device `G10`, product `G10_4K_US_NF`, build
+  `STT2.230203.001`, software `V8-R75PT01-LF1V499` (PR #78); 55Q651G is `G10_4K_US_NF`, `V8-R75PT01-LF1V534` (Q651 L45).
+- **Packages:** 10 of the 13 active lines are on the 50Q651G-CA's list, and 11 of 13 were disabled on the 55Q651G
+  (per-line evidence in `config/debloat.list`). **None turned out risky, so nothing moved to OPTIONAL.** `logkit` ships
+  *enabled* on both, so turning it off does something real here.
+- **Must stay (now noted or added in `config/do-not-touch.list`):** `channelplus` (Live TV's only source with no
+  antenna, 55Q651G), `tv.remote.service` (the remote's mic, 55Q651G), `partnercustomizer` (the YouTube button's
+  route, 55Q651G), `ttvs` (firmware updates). **Added:** `com.realtek.airplay2` (AirPlay's other half; both reports keep
+  it) and `com.tcl.providers.config` (other TCL apps query it, PR #78; "never disable" on a 65Q650G).
+- **Launcher-as-default:** both reports saw `setupwraith`'s RecoveryActivity take Home (black screen) once Google TV's
+  home is off. Free My TV's switch already turns setupwraith off itself after its Wi-Fi-owner check (HomeMode.java
+  L594-660), which is what this package relies on. No report of Free My TV on a Q6 either way.
+- **Background killer:** TclAppBoot blocks Free My TV's jobs until auto-start is allowed (FMTV #364/#375), and TGuard
+  can kill the switch while it measures (FMTV #277; DEPLOY already covers that). On TCL, app-ops are saved lazily, so a
+  restart soon after can drop the allow (CleanYourTV TROUBLESHOOTING; seen on a G10 C69B).
+- **`ro.product.model`:** TCL Google TVs report a generic name ("Smart TV Pro" on G08/G09/G03 sets in CleanYourTV's
+  device docs); the retail model "isn't exposed by ro.product.model".
+
+**Changed (commits):** `e2f52bd` lists (per-line 50Q651G evidence, two do-not-touch additions) · `772d3ea`
+install-launcher saves the auto-start op with `appops write-settings` · `cae76cf` detect.sh prints product/software
+and a model check: `ok  Known model: TCL <model> (Q6 series) …` if "Q651G" appears in the model or product string,
+otherwise `ok  Platform G10 / G10_4K_US_NF …` and a pointer to the sticker, otherwise a "not the checked platform" note.
+Fire TV / Roku refusals run first, unchanged · this commit: DEPLOY model notes, RESEARCH sources, this section. No
+launcher code changed, so the APKs weren't rebuilt (`release/` and `SHA256SUMS` unchanged).
+
+**Still unconfirmed for the 50Q651G:**
+- What `ro.product.model` returns on a Q651G. No source shows the property for it, so detect.sh matches "Q651G" if it
+  appears and otherwise the platform. `G10_4K_US_NF` is shared with the 55QM5K and S551G, so the platform doesn't prove
+  the model.
+- Whether the owner's set is the US model or a `-CA` one, and its firmware/Android version today (a G10 Android 14
+  build exists for other G10 products).
+- `com.google.android.youtube.tvmusic`: in neither report (skipped if absent). `com.tcl.hotelmenu` is on PR #78's list
+  only.
+- Whether the remote's Netflix/YouTube/Prime/gear buttons work with Free My TV as Home on this model (dead on some
+  other G10 sets with Google TV's home off; nothing reported for a Q651G).
+- Whether phone casting survives setupwraith being off (lost on a 65T69C, fine on a 55QM5K).
+- TCL's own spec page, XDA and the TCL forum: not read (no web access). Worth reading before the first run.
+
 ## Time log (CST)
 
 22:30 toolchain (aapt2/zipalign from Ubuntu arm64, Google's Java tools, JDK) · 22:35 baseline upstream build ·
