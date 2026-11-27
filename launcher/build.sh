@@ -3,10 +3,23 @@
 # Needs a JDK (17+) and the Android SDK command-line tools (build-tools 34+, platform android-34). See README.md.
 #   ./build.sh             with config.properties (your city, your TMDB key)
 #   ./build.sh --generic   without it, as the APK on GitHub's releases: no key, and the TV's time zone gives the city
+# tcl-tv-minimal adds build flavors (no Gradle upstream, so these are build.sh flavors, not Gradle ones):
+#   ./build.sh --flavor jarvis    (default) ONE APK with the JARVIS layer behind its toggle (config.json jarvis.enabled)
+#   ./build.sh --flavor classic   the classic minimalist launcher only: no JARVIS code, permission or components
 set -euo pipefail
 cd "$(dirname "$0")"
 GENERIC=false
-for arg in "$@"; do [ "$arg" = "--generic" ] && GENERIC=true; done
+FLAVOR=jarvis
+prev=""
+for arg in "$@"; do
+  [ "$arg" = "--generic" ] && GENERIC=true
+  case "$arg" in --flavor=*) FLAVOR="${arg#--flavor=}" ;; esac
+  [ "$prev" = "--flavor" ] && FLAVOR="$arg"
+  prev="$arg"
+done
+case "$FLAVOR" in jarvis|classic) ;; *) echo "--flavor must be jarvis or classic (got $FLAVOR)"; exit 1 ;; esac
+# The repo's config/config.json is the launcher's built-in default (assets/config.default.json): one file to edit.
+if [ -f ../config/config.json ]; then cp ../config/config.json app/assets/config.default.json; fi
 
 # --- Tools
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
@@ -141,6 +154,7 @@ final class Config {
     static final boolean GENERIC = $GENERIC;   // built with --generic, as the APK on GitHub's releases (Updates)
     static final boolean OPEN_IN_STREMIO = $STREMIO;
     static final boolean OPEN_IN_NUVIO = $NUVIO;
+    static final String FLAVOR = "$FLAVOR";   // tcl-tv-minimal: jarvis | classic
 }
 EOF
 
@@ -164,7 +178,10 @@ mkdir -p out/res/xml
 "$BT/aapt2" compile --dir app/res -o out/res.zip
 "$BT/aapt2" compile --dir out/res -o out/res-gen.zip
 # Fonts uncompressed: Android reads them straight from the APK.
-"$BT/aapt2" link -o out/base.apk -I "$AJ" --manifest app/AndroidManifest.xml --java out/gen out/res.zip out/res-gen.zip \
+# The flavor's manifest: classic drops every <!-- JARVIS:BEGIN --> ... <!-- JARVIS:END --> block.
+if [ "$FLAVOR" = classic ]; then sed '/JARVIS:BEGIN/,/JARVIS:END/d' app/AndroidManifest.xml > out/AndroidManifest.xml
+else cp app/AndroidManifest.xml out/AndroidManifest.xml; fi
+"$BT/aapt2" link -o out/base.apk -I "$AJ" --manifest out/AndroidManifest.xml --java out/gen out/res.zip out/res-gen.zip \
   --min-sdk-version 26 --target-sdk-version 33 -A app/assets -0 ttf
 # Windows aapt2 packs assets with backslash separators ("assets/symbols\x.png") and Android
 # cannot find them: the home screen loses its icons and fonts. Rename the zip entries to "/".
@@ -221,7 +238,7 @@ apksigner() {
   else "$BT/apksigner" "$@"; fi
 }
 "$JAVAC" -nowarn -Xlint:-options -source 8 -target 8 -bootclasspath "$AJ$CPSEP$BT/core-lambda-stubs.jar" -classpath "$AJ" \
-  -encoding UTF-8 -d out/classes $(find app/src out/gen -name '*.java')
+  -encoding UTF-8 -d out/classes $(find app/src "app/src-$FLAVOR" out/gen -name '*.java')
 d8 --release --min-api 26 --lib "$AJ" --output out $(find out/classes -name '*.class')
 if command -v zip >/dev/null; then (cd out && zip -qj base.apk classes.dex)
 else "${JAVA_HOME:+$JAVA_HOME/bin/}jar" -u -M -f out/base.apk -C out classes.dex; fi # Git Bash has no zip
@@ -240,4 +257,4 @@ else
   fi
   apksigner sign --ks freemytv.keystore --ks-pass pass:freemytv --key-pass pass:freemytv --out FreeMyTV.apk out/aligned.apk
 fi
-echo "Built FreeMyTV.apk ($(du -h FreeMyTV.apk | cut -f1)). Install: adb install -r FreeMyTV.apk"
+echo "Built FreeMyTV.apk, flavor $FLAVOR ($(du -h FreeMyTV.apk | cut -f1)). Install: adb install -r FreeMyTV.apk"

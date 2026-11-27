@@ -157,6 +157,12 @@ public class SettingsActivity extends Activity {
         // The main menu: nine rows, then the comparison, the picks (with the Watchmode credit) and two notices, all on
         // one 1080 px screen: the rows share the 462 px that seven took.
         private static final float MAIN_TOP = 140, ROW_H = 47.33f, MAIN_GAP = 4;
+        /** The main list's last row in the jarvis build: JARVIS mode on/off. */
+        private static final int JARVIS_ROW = 9;
+
+        private String jarvisRowText() {
+            return "JARVIS mode, " + (UserConfig.jarvisEnabled(getContext()) ? "On" : "Off, classic layout");
+        }
         private static final int AMBER = 0xFFFFC266, INK = 0xFF1C1C1E;
 
         private final SettingsActivity activity;
@@ -333,7 +339,7 @@ public class SettingsActivity extends Activity {
                     }
                     String[] names = {Ui.tr("Screensaver, preview"), Ui.tr("Home Settings"),
                             Ui.tr("Shelf"), Ui.tr("Top Buttons"), Ui.tr("Inputs"), Ui.tr("Remote Buttons"),
-                            Ui.tr("Sleep Timer"), Ui.tr("TV Settings")};
+                            Ui.tr("Sleep Timer"), Ui.tr("TV Settings"), jarvisRowText()};
                     return row - 1 < names.length ? names[row - 1] : "";
                 }
                 case HOME_CHOICE: {
@@ -541,7 +547,7 @@ public class SettingsActivity extends Activity {
 
         private int rowCount() {
             switch (screen) {
-                case MAIN: return 9;
+                case MAIN: return JarvisHooks.AVAILABLE ? 10 : 9;   // 10th: JARVIS mode (jarvis build)
                 case HOME_CHOICE: return 2;
                 case HOME_SETTINGS: return Math.min(SETTINGS_VISIBLE, settingLabels().length);
                 case PICKER: return Math.min(PICK_VISIBLE, pickLabels.size());
@@ -601,6 +607,12 @@ public class SettingsActivity extends Activity {
                     Ui.tr("Home Settings"), Ui.tr("Shelf"), Ui.tr("Top Buttons"), Ui.tr("Inputs"),
                     Ui.tr("Remote Buttons"), Ui.tr("Sleep Timer"), Ui.tr("TV Settings")};
             String[] values = {working ? "" : mode, Ui.tr("Preview"), "", "", "", "", "", "", ""};
+            if (JarvisHooks.AVAILABLE) {   // the JARVIS layout toggle: one press switches, saved in config.json
+                labels = java.util.Arrays.copyOf(labels, JARVIS_ROW + 1);
+                values = java.util.Arrays.copyOf(values, JARVIS_ROW + 1);
+                labels[JARVIS_ROW] = "JARVIS mode";
+                values[JARVIS_ROW] = UserConfig.jarvisEnabled(getContext()) ? "On" : "Off (classic)";
+            }
             for (int i = 0; i < labels.length; i++) {
                 float y = (MAIN_TOP + i * (ROW_H + MAIN_GAP)) * k;
                 rowRect.set(LIST_X * k, y, LIST_R * k, y + ROW_H * k);
@@ -614,7 +626,7 @@ public class SettingsActivity extends Activity {
                 if (off) {
                     rowValue.setColor(blend(0x59FFFFFF, 0x591C1C1E, f));
                     c.drawText(Ui.tr("Unavailable"), right, base, rowValue);
-                } else if (i >= 2) {
+                } else if (i >= 2 && i != JARVIS_ROW) {
                     float cw = Symbols.width(getContext(), "chevron_right", 22 * k);
                     Symbols.draw(getContext(), c, "chevron_right", right - cw / 2, rowRect.centerY(), 22 * k, blend(0x66FFFFFF, 0x991C1C1E, f));
                 } else if (i == 0 && working) {
@@ -2603,6 +2615,10 @@ public class SettingsActivity extends Activity {
                 pickScroll = 0;
                 screen = POWER;
                 focus = 0;
+            } else if (focus == JARVIS_ROW && JarvisHooks.AVAILABLE) {
+                // JARVIS layout <-> classic layout: instant, nothing reinstalled; the home screen redraws on its own.
+                JarvisHooks.setEnabled(c, !UserConfig.jarvisEnabled(c));
+                spoken.focusMoved();
             } else {
                 // As the drawer's TV Settings: where nothing answers the standard request (an HY300 Pro+ in Free My TV
                 // mode, #379), Android TV's own settings, and never a crash.

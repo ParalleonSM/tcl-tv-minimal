@@ -49,9 +49,15 @@ public class HomeActivity extends Activity {
             return;
         }
         Ui.init(this);
+        // config.json: its layout/theme/app keys into Prefs when they changed (no restart loop: the version is taken now).
+        UserConfig.applyToPrefs(this);
+        prefsVersion = Prefs.version;
         home = new HomeView(this);
         setContentView(home);
         getWindow().setBackgroundDrawable(null);
+        // The JARVIS layer sits over the home screen (a separate view) only while it is on; off, these do nothing.
+        JarvisHooks.onHomeCreate(this);
+        UserConfig.listen(configChanged);
         if (wantsAllApps(getIntent())) home.showAllApps();
         else if (getIntent().getBooleanExtra(EXTRA_INPUTS, false)) home.showInputs();
         // At power-on "Live TV" (#346): the first time the home screen comes up after a full start, in Free My TV mode.
@@ -103,6 +109,7 @@ public class HomeActivity extends Activity {
             return;
         }
         if (home != null) home.resume();
+        JarvisHooks.onHomeResume(this);
         if (liveDark && home != null) {   // the screen came on with the home screen in front
             liveDark = false;
             home.removeCallbacks(powerOnLive);
@@ -118,6 +125,7 @@ public class HomeActivity extends Activity {
             liveDark = power != null && !power.isInteractive();
         }
         if (home != null) home.pause();
+        JarvisHooks.onHomePause(this);
         super.onPause();
     }
 
@@ -148,7 +156,12 @@ public class HomeActivity extends Activity {
     private long lastHome;
     private static final long TWICE_MS = 700;
 
+    /** config.json changed (pushed from the computer, or the JARVIS toggle): draw the home screen again with it. */
+    private final Runnable configChanged = this::recreate;
+
     @Override protected void onDestroy() {
+        UserConfig.unlisten(configChanged);
+        JarvisHooks.onHomeDestroy(this);
         if (home != null) {
             home.removeCallbacks(powerOnLive);
             home.destroy();
@@ -175,6 +188,7 @@ public class HomeActivity extends Activity {
                     + (event.getAction() == KeyEvent.ACTION_UP ? " up" : "") + "), no Live TV");
         }
         if (RemoteKeys.onKey(this, event)) return true;
+        if (home != null && JarvisHooks.onHomeKey(this, event)) return true;   // JARVIS's wake keys (only while on)
         // The Apps key, unless it has a row in Remote Buttons on this TV (Hisense): there the row decides, and on
         // Nothing the key is left to the TV, so it must not open the sheet here either. Not by whether the key service
         // is on: a TCL's is on for its app buttons, and its Apps key then did nothing.

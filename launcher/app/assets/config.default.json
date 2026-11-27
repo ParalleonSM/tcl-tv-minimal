@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "_about": "tcl-tv-minimal launcher config. Edit, then: scripts/push-config.sh --ip <TV IP>. No rebuild, no reinstall. Keys starting with _ are notes. See README.md > Customize.",
+
+  "theme": {
+    "_about": "The classic minimalist look (Apple TV-like: dark, calm, big focused tiles). Colors are #RRGGBB or #AARRGGBB.",
+    "mode": "dark",
+    "clock": "auto",
+    "background_top": "#121214",
+    "background_bottom": "#000000",
+    "background_day_top": "#F5F5F7",
+    "background_day_bottom": "#E2E2E7",
+    "focus_zoom": 0.14,
+    "corner_radius": 18,
+    "accent": "#FFFFFF"
+  },
+
+  "layout": {
+    "_about": "top_row: picks (trending, needs a TMDB key) or none (no recommendations: a big clock). top_buttons: live, inputs, settings, recents, store.",
+    "top_row": "none",
+    "picks_count": 3,
+    "weather": true,
+    "markets": false,
+    "photos": false,
+    "status_icons": false,
+    "top_buttons": ["live", "inputs", "settings"]
+  },
+
+  "apps": {
+    "_about": "pinned: the shelf, in order (packages). Empty = the TV's own apps in Free My TV's default order. hidden: never shown on the shelf or in All Apps (still installed).",
+    "pinned": [],
+    "hidden": ["com.tcl.t_solo", "com.tcl.guard", "com.tcl.dashboard", "com.tcl.waterfall.overseas", "com.tcl.ocean.instructions", "com.google.android.play.games"]
+  },
+
+  "jarvis": {
+    "_about": "The JARVIS layout and voice mode. enabled=false (or Settings > JARVIS mode, or scripts/tvctl.sh jarvis off) gives back the classic layout exactly, instantly.",
+    "enabled": true,
+    "name": "JARVIS",
+    "address": "sir",
+    "hud": true,
+    "hint": "Hold Back to talk",
+    "wake_words": ["hey jarvis", "jarvis"],
+    "wake": {
+      "_about": "hold_back: hold Back on the home screen. keys: Android key codes that also wake it, if the remote sends them to the home screen (84 SEARCH, 231 VOICE_ASSIST, 186 PROG_BLUE, 172 GUIDE).",
+      "hold_back": true,
+      "keys": [84, 231, 186]
+    },
+    "voice": {
+      "language": "en-GB",
+      "recognition_language": "en-US",
+      "rate": 1.0,
+      "pitch": 0.9,
+      "name": ""
+    },
+    "theme": {
+      "_about": "Only while JARVIS is on, over the classic theme above.",
+      "background_top": "#0A1622",
+      "background_bottom": "#000000",
+      "accent": "#4FD1FF"
+    }
+  },
+
+  "search": {
+    "package": "com.google.android.youtube.tv"
+  },
+
+  "aliases": {
+    "_about": "Spoken app names -> packages (from Free My TV's HomeApps.SHELF). Any app's own name works too.",
+    "netflix": "com.netflix.ninja",
+    "youtube": "com.google.android.youtube.tv",
+    "prime": "com.amazon.amazonvideo.livingroom",
+    "prime video": "com.amazon.amazonvideo.livingroom",
+    "amazon": "com.amazon.amazonvideo.livingroom",
+    "disney": "com.disney.disneyplus",
+    "disney plus": "com.disney.disneyplus",
+    "max": "com.wbd.stream",
+    "hbo": "com.wbd.stream",
+    "hbo max": "com.wbd.stream",
+    "apple tv": "com.apple.atve.androidtv.appletv",
+    "hulu": "com.hulu.livingroomplus",
+    "paramount": "com.cbs.ott",
+    "paramount plus": "com.cbs.ott",
+    "peacock": "com.peacocktv.peacockandroid",
+    "spotify": "com.spotify.tv.android"
+  },
+
+  "commands": [
+    {"id": "netflix", "action": "launch_app", "args": {"app": "netflix"}, "phrases": ["netflix", "open netflix", "put on netflix"]},
+    {"id": "youtube", "action": "launch_app", "args": {"app": "youtube"}, "phrases": ["youtube", "open youtube", "put on youtube"]},
+    {"id": "open_app", "action": "launch_app", "phrases": ["open {app}", "launch {app}", "start {app}", "go to {app}", "open up {app}"]},
+
+    {"id": "hdmi", "action": "hdmi", "phrases": ["switch to hdmi {input}", "hdmi {input}", "go to hdmi {input}", "input {input}", "switch to input {input}", "change input to {input}", "change to hdmi {input}"]},
+    {"id": "live_tv", "action": "live_tv", "phrases": ["live tv", "watch tv", "switch to live tv", "antenna", "tv channels"]},
+    {"id": "home", "action": "home", "phrases": ["home", "go home", "home screen"]},
+    {"id": "settings", "action": "settings", "phrases": ["settings", "open settings", "tv settings"]},
+
+    {"id": "search", "action": "search", "phrases": ["search for {query}", "search {query}", "find {query}", "look up {query}", "search youtube for {query}"]},
+
+    {"id": "vol_up", "action": "volume", "args": {"step": "+2"}, "phrases": ["volume up", "turn it up", "louder", "turn up the volume", "a bit louder"]},
+    {"id": "vol_down", "action": "volume", "args": {"step": "-2"}, "phrases": ["volume down", "turn it down", "quieter", "turn down the volume", "a bit quieter"]},
+    {"id": "vol_up_n", "action": "volume", "args": {"direction": "up"}, "phrases": ["volume up {step}", "turn it up {step}", "turn up the volume by {step}"]},
+    {"id": "vol_down_n", "action": "volume", "args": {"direction": "down"}, "phrases": ["volume down {step}", "turn it down {step}", "turn down the volume by {step}"]},
+    {"id": "vol_set", "action": "volume", "phrases": ["set volume to {level}", "set the volume to {level}", "volume to {level}", "volume {level}"]},
+    {"id": "mute", "action": "volume", "args": {"mute": "true"}, "phrases": ["mute", "silence", "mute the tv", "quiet"]},
+    {"id": "unmute", "action": "volume", "args": {"mute": "false"}, "phrases": ["unmute", "sound on", "unmute the tv"]},
+
+    {"id": "play_pause", "action": "media", "args": {"key": "play_pause"}, "phrases": ["pause", "play", "resume", "pause it", "play it"]},
+    {"id": "next", "action": "media", "args": {"key": "next"}, "phrases": ["next", "skip", "next episode", "next track"]},
+    {"id": "previous", "action": "media", "args": {"key": "previous"}, "phrases": ["previous", "previous track", "go back a track"]},
+    {"id": "stop", "action": "media", "args": {"key": "stop"}, "phrases": ["stop", "stop playback"]},
+    {"id": "rewind", "action": "media", "args": {"key": "rewind"}, "phrases": ["rewind"]},
+    {"id": "fast_forward", "action": "media", "args": {"key": "fast_forward"}, "phrases": ["fast forward", "skip ahead"]},
+
+    {"id": "status", "action": "status", "phrases": ["status", "status report", "system status", "report", "how are we doing", "what time is it", "what's the time", "how are things"]},
+
+    {"id": "classic", "action": "jarvis", "args": {"enabled": "false"}, "phrases": ["classic mode", "classic layout", "turn off jarvis", "disable jarvis", "switch to classic"]},
+
+    {"id": "vol_12", "action": "volume", "args": {"level": "12"}, "phrases": []},
+    {"id": "movie_night", "action": "macro", "args": {"run": "vol_12;netflix", "delay_ms": "600"}, "phrases": ["movie night", "movie time", "it's movie night"]}
+  ]
+}

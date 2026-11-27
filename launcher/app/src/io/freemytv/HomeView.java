@@ -94,9 +94,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     // banners, so those are never stretched: up to 224 × 126, 178 × 100 with eight apps, 133 × 75 with ten
     // (HomeApps.shelfVisible; past that the shelf scrolls).
     private static final float SHELF_PAD = 40, TILE_GAP = 48;
-    private static final float TILE_RADIUS = 22;
+    /** Corner radius of the shelf tiles (config.json theme.corner_radius; 22 upstream). Set in the constructor. */
+    private static float TILE_RADIUS = 22;
     // Tile focus (Apple TV style): it grows from the center and its shadow drops (it "rises" toward the viewer).
-    private static final float FOCUS_GROW = 0.2f;
+    /** How much the focused tile grows (config.json theme.focus_zoom; 0.2 upstream). Set in the constructor. */
+    private static float FOCUS_GROW = 0.2f;
     // Corner capsule.
     // Corner capsule: the height and top offset of the tvOS tab bar (68 and 46).
     private static final float CAPSULE_TOP = 46, CAPSULE_H = 68, BUTTON = 56;
@@ -104,7 +106,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final float SHIFT = 560, ROW_TITLE = 518, ROW_TOP = 540, ROW_H = 126, CARDS_TOP = 708, CARDS_H = 300;
     // "All Apps" sheet.
     private static final int COLUMNS = 5, VISIBLE_ROWS = 3;
-    private static final float GRID_W = 300, GRID_H = 169, GRID_GAP = 40, GRID_ROW = 239, GRID_TOP = 196, GRID_RADIUS = 22;
+    private static final float GRID_W = 300, GRID_H = 169, GRID_GAP = 40, GRID_ROW = 239, GRID_TOP = 196;
+    /** All Apps cards' corner radius (config.json theme.corner_radius). */
+    private static float GRID_RADIUS = 22;
     private static final int SMOKE = 0xFF111113, INK = 0xFF1C1C1E, WHITE = 0xFFF5F5F7;
     private static final int UP_COLOR = 0xFF30D158, DOWN_COLOR = 0xFFFF453A;
     private static final long TOAST_MS = 6000, FADE_MS = 800;
@@ -166,6 +170,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final long NIGHT_MS = 2000;
     private boolean nightTarget;
     private float night, nightFrom;     // 0 = day, 1 = night
+    /** The plain background's gradient, day and night (config.json theme.background_*). */
+    private int dayTop, dayBottom, nightTop, nightBottom;
     private long nightAt;
     private final int[] glassNight = new int[Backdrop.GW * Backdrop.GH], frostNight = new int[Backdrop.FW * Backdrop.FH];
     private final int[] neutralGlassPx = new int[Backdrop.GW * Backdrop.GH], neutralFrostPx = new int[Backdrop.FW * Backdrop.FH];
@@ -608,6 +614,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     HomeView(Activity a) {
         super(a);
         activity = a;
+        // config.json (UserConfig): read once here; a change recreates the home screen.
+        TILE_RADIUS = UserConfig.number(a, "theme", "corner_radius", 22, 0, 48);
+        GRID_RADIUS = TILE_RADIUS;
+        FOCUS_GROW = UserConfig.number(a, "theme", "focus_zoom", 0.2f, 0.05f, 0.35f);
+        dayTop = UserConfig.color(a, "background_day_top", 0xFFF5F5F7);
+        dayBottom = UserConfig.color(a, "background_day_bottom", 0xFFE2E2E7);
+        nightTop = UserConfig.color(a, "background_top", 0xFF1C1C1E);
+        nightBottom = UserConfig.color(a, "background_bottom", 0xFF0B0B0D);
         data = HomeData.get(a);
         recs = Recs.get(a);
         playing = new NowPlaying.Watch(a, this::onPlaying);
@@ -4578,8 +4592,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // Drawer open: the background lightens (by day) or darkens (at night), as a filter on the drawing itself.
         android.graphics.ColorFilter v = veil(tone(0.32f, 0.42f) * Ui.clamp(drawer.value), blend(0xFFFFFFFF, 0xFF000000, night));
         if (bgTo == null || (fading && bgFrom == null)) {
-            if (lightGradient == null) lightGradient = Ui.gradient(h, 0xFFF5F5F7, 0xFFE2E2E7);
-            if (nightGradient == null) nightGradient = Ui.gradient(h, 0xFF1C1C1E, 0xFF0B0B0D);
+            if (lightGradient == null) lightGradient = Ui.gradient(h, dayTop, dayBottom);
+            if (nightGradient == null) nightGradient = Ui.gradient(h, nightTop, nightBottom);
             fill.setColorFilter(v);
             fill.setColor(0xFF000000);
             if (continueMode()) {

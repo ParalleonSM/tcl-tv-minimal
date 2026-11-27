@@ -144,7 +144,7 @@ final class HomeApps {
 
     /** An app All Apps leaves out (the TV's own helpers: Safety Guard, T-Solo…): Recent Apps leaves it out too. */
     static boolean isHidden(String pkg) {
-        return HIDDEN.contains(pkg);
+        return HIDDEN.contains(pkg) || UserConfig.hidden(pkg);
     }
 
     /** Live TV apps of some brands (the antenna's channels open through the standard Android request first). */
@@ -221,13 +221,18 @@ final class HomeApps {
 
     /** The shelf's packages in order: the user's list (Settings > Shelf), or the built-in one. */
     static List<String> shelfPackages(Context c) {
+        UserConfig.get(c);   // apps.hidden from config.json
         List<String> custom = Prefs.shelf();
-        if (custom != null) return custom;
+        if (custom != null) {
+            List<String> shown = new ArrayList<>(custom);
+            shown.removeIf(UserConfig::hidden);
+            return shown;
+        }
         List<String> out = new ArrayList<>();
         Set<String> keys = new HashSet<>();
         PackageManager pm = c.getPackageManager();
         for (String[] d : SHELF) {
-            if (out.size() < FEW_APPS && !keys.contains(d[0]) && launchIntent(pm, d[2]) != null) {
+            if (out.size() < FEW_APPS && !keys.contains(d[0]) && !UserConfig.hidden(d[2]) && launchIntent(pm, d[2]) != null) {
                 keys.add(d[0]);
                 out.add(d[2]);
             }
@@ -243,7 +248,7 @@ final class HomeApps {
         for (String[] d : SHELF) if (launchIntent(pm, d[2]) != null && seen.add(d[2])) out.add(new String[] {d[2], d[1]});
         List<String[]> more = new ArrayList<>();
         for (String[] app : launchable(c)) {
-            if (app[0].equals(c.getPackageName()) || HIDDEN.contains(app[0]) || !seen.add(app[0])) continue;
+            if (app[0].equals(c.getPackageName()) || isHidden(app[0]) || !seen.add(app[0])) continue;
             more.add(app);
         }
         // A system app put on the shelf while "Android apps" was on keeps its row after it's turned off, so it can come
@@ -478,7 +483,7 @@ final class HomeApps {
      * in the TV's settings is used as the label; without one, the name the device reports over HDMI-CEC ("PlayStation 5").
      * The icon follows what that name says the device is (see deviceSymbol).
      */
-    private static List<Item> inputs(Context c, boolean all) {
+    static List<Item> inputs(Context c, boolean all) {
         List<Item> out = new ArrayList<>();
         TvInputManager tim = (TvInputManager) c.getSystemService(Context.TV_INPUT_SERVICE);
         if (tim == null) return out;
@@ -630,11 +635,12 @@ final class HomeApps {
         skip.addAll(java.util.Arrays.asList(LIVE_TV_APPS));
         skip.add(c.getPackageName());
         skip.addAll(HIDDEN);
+        UserConfig.get(c);   // apps.hidden from config.json, checked below
         List<Item> items = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (String[] app : launchable(c)) {
             String pkg = app[0];
-            if (skip.contains(pkg) || !seen.add(pkg)) continue;
+            if (skip.contains(pkg) || UserConfig.hidden(pkg) || !seen.add(pkg)) continue;
             Item it = new Item();
             it.kind = APP;
             it.pkg = pkg;

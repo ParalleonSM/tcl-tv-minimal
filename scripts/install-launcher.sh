@@ -77,6 +77,13 @@ step "2/6  Letting it run in the background (TCL's TclAppBoot blocks that by def
 AO="$(tv_do shell "appops set $LAUNCHER_PKG AUTO_START allow || appops set $LAUNCHER_PKG APP_AUTO_START allow")"
 case "$AO" in *"Unknown operation"*) say "  this firmware has no auto-start block (nothing to allow)";; *) ok "allowed" ;; esac
 
+# JARVIS's voice mode needs the microphone. Granted now so the TV never has to ask (the classic build doesn't request it).
+if sh_read "uses-permission: android.permission.RECORD_AUDIO" dumpsys package "$LAUNCHER_PKG" | grep -q 'android.permission.RECORD_AUDIO'; then
+  MIC="$(tv_do shell pm grant "$LAUNCHER_PKG" android.permission.RECORD_AUDIO)"
+  if [ -z "$MIC" ] || is_dry; then ok "microphone allowed for JARVIS's voice mode"
+  else warn "couldn't grant the microphone ($MIC); JARVIS will ask on the TV the first time"; fi
+fi
+
 step "3/6  Sending the launcher config"
 if [ "$CONFIG" = none ]; then
   say "  skipped (--config none): the launcher uses its built-in defaults (JARVIS on)"

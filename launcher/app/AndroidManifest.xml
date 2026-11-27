@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.freemytv"
     android:versionCode="6"
-    android:versionName="1.5">
+    android:versionName="1.5-tcl.1">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -23,6 +23,10 @@
          granted at install; from 12 it is asked for when Status icons is turned on (and only the icon needs it). -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- JARVIS:BEGIN permissions (the classic flavor of build.sh removes everything between these markers) -->
+    <!-- JARVIS's voice mode: speech recognition. Granted by install-launcher.sh (pm grant), or asked once. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- JARVIS:END -->
 
     <!-- Android 11+: without this list the app can't "see" the other apps (getLeanbackLaunchIntentForPackage
          returns null). The shelf and streaming apps, the live TV apps and, through the <intent>, every TV app
@@ -96,6 +100,22 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="content" android:host="android.media.tv" />
         </intent>
+        <!-- The command layer's "search" action: apps that take a search. -->
+        <intent>
+            <action android:name="android.intent.action.SEARCH" />
+        </intent>
+        <!-- JARVIS:BEGIN queries -->
+        <!-- JARVIS: the speech recognizer, the system's speech screen and the text-to-speech engine (Android 11+). -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <!-- JARVIS:END -->
     </queries>
 
     <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -273,6 +293,40 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!-- tcl-tv-minimal: the command layer and config.json, for adb's shell only (Control checks the caller).
+             In :home, with the home screen, so settings it changes are seen at once. -->
+        <provider
+            android:name=".Control"
+            android:authorities="io.freemytv.control"
+            android:process=":home"
+            android:exported="true" />
+
+        <!-- JARVIS:BEGIN components -->
+        <!-- JARVIS's voice mode: a full-screen overlay; Back closes it. -->
+        <activity
+            android:name=".JarvisActivity"
+            android:process=":home"
+            android:exported="false"
+            android:label="JARVIS"
+            android:launchMode="singleTask"
+            android:taskAffinity="io.freemytv.jarvis"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+        <!-- "JARVIS" in the TV's own app list (so "Hey Google, open JARVIS" may reach it); the toggle turns it off. -->
+        <activity-alias
+            android:name=".JarvisLauncher"
+            android:targetActivity=".JarvisActivity"
+            android:exported="true"
+            android:label="JARVIS">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <!-- JARVIS:END -->
 
         <receiver
             android:name=".HomeReceiver"

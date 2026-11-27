@@ -335,6 +335,7 @@ push_config() {
   else
     printf '%s  +  adb -s %s exec-in content write --uri %s/config.json < %s%s\n' "$C_D" "$TV" "$CONTROL_URI" "$f" "$C_0" >&3
     "$ADB" -s "$TV" exec-in content write --uri "$CONTROL_URI/config.json" < "$f" 2>&1 | tr -d '\r' >&3 || true
+    sleep 1   # the launcher takes the file when the write closes (on its main thread); give it a moment
   fi
   reply="$(control_call '{"action":"reload_config"}' '{"ok":true,"config":"loaded"}')"
   case "$reply" in
