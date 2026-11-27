@@ -1,0 +1,67 @@
+# DO NOT TOUCH — scripts/debloat.sh refuses every package here, whatever config/debloat.list says.
+# (It also refuses Android's core pieces by pattern: see CORE_RE in scripts/lib.sh.)
+# Sources: same keys as config/debloat.list (FMTV = Free My TV PROTECTED; ADRI = catalog "protected": true;
+# CYTV = CleanYourTV's "Keep:" notes and tools/disable.sh guards).
+
+# --- The home screen and its fallbacks: owned by the launcher switch (install-launcher.sh / rollback.sh), never by
+#     the debloat list. Disabling these by hand is how TVs end up on a black screen.
+com.google.android.apps.tv.launcherx       # Google TV Home. Free My TV's switch turns it off only after its checks. ADRI protected
+com.google.android.tungsten.setupwraith    # Google TV setup: its RecoveryActivity takes Home if the launcher is off; owns first-setup Wi-Fi. FMTV, CYTV
+com.google.android.tvlauncher              # Classic Android TV home (fallback home on some firmware)
+com.google.android.apps.tv.dreamx          # Google TV screensaver: the launcher switch manages the screensaver
+com.google.android.tvrecommendations       # Crashes the screensaver while off (FMTV #11)
+io.freemytv                                # The replacement launcher itself
+com.tcl.keycustomfunctionservice           # TCL remote keys; registers FallbackHome. FMTV PROTECTED
+
+# --- Picture, sound, HDMI inputs, live TV
+com.tcl.tv                                 # TCL Live TV / HDMI app. FMTV, CYTV keep
+com.tcl.tvinput                            # TCL TV input service (HDMI). FMTV, CYTV keep
+com.tcl.channelplus                        # Live TV's channel source: off = black screen. FMTV PROTECTED (CYTV disables it: conflict -> keep)
+com.tcl.ttvs                               # TCL TV core services. FMTV, ADRI protected (CYTV disables it: conflict -> keep)
+com.tvos                                   # FMTV PROTECTED
+com.tcl.systemserver                       # FMTV PROTECTED
+com.tcl.system.server                      # FMTV PROTECTED
+com.dolby.android.audio.service            # Dolby audio. FMTV PROTECTED
+com.tcl.hearaid                            # Hearing assistance / audio adaptation. FMTV PROTECTED
+com.tcl.suspension                         # The Input button's source panel / quick controls. FMTV, ADRI protected, CYTV keep
+com.tcl.dashboard                          # TCL dashboard. FMTV PROTECTED
+com.tcl.gamebar                            # Game mode / VRR overlay. FMTV PROTECTED
+com.tcl.airplay2                           # AirPlay receiver. FMTV PROTECTED
+
+# --- Remote, Bluetooth, keyboard, mic (JARVIS needs the mic and speech services)
+com.tcl.tcl_bt_rcu_service                 # Bluetooth remote. FMTV PROTECTED
+com.tcl.autopair                           # Remote pairing. FMTV PROTECTED
+com.tcl.micmanager                         # Remote mic. FMTV PROTECTED
+com.tcl.keyhelp                            # Remote keys. FMTV PROTECTED
+com.tcl.globalkeyoverlay                   # FMTV PROTECTED
+com.tcl.inputmethod.international          # On-screen keyboard. FMTV, CYTV keep
+com.google.android.inputmethod.latin       # Gboard. FMTV PROTECTED
+com.google.android.tv.remote.service       # Google TV remote service (phone remote). FMTV, ADRI protected
+com.google.android.katniss                 # Google Assistant / voice search AND speech recognition used by JARVIS. ADRI protected
+com.google.android.tts                     # Text-to-speech: JARVIS speaks with it
+com.google.android.marvin.talkback         # Screen reader (accessibility)
+
+# --- Setup, settings, updates, system UI, store, web
+com.tcl.settings                           # FMTV PROTECTED
+com.tcl.initsetup                          # TCL first setup. FMTV, ADRI protected
+com.tcl.useragreement                      # FMTV PROTECTED
+com.tcl.partnercustomizer                  # FMTV PROTECTED (CYTV disables it: conflict -> keep)
+com.tcl.tv.tclhome_passive                 # FMTV PROTECTED (CYTV disables it: conflict -> keep)
+com.tcl.waterfall.overseas                 # TCL Channel; partnercustomizer's key opens it. FMTV PROTECTED (conflict -> keep)
+com.tcl.guard                              # TCL TV Guard. FMTV PROTECTED (conflict -> keep)
+com.tcl.t_solo                             # FMTV PROTECTED (conflict -> keep)
+com.tcl.UpdatePeripheral                   # FMTV, ADRI protected
+com.tcl.factory.view                       # Factory menu. FMTV, ADRI protected
+com.tcl.common.shortcutmenu                # Quick menu. FMTV PROTECTED
+com.tcl.systemui.plugin                    # FMTV PROTECTED
+com.tcl.android.webview                    # FMTV, ADRI protected
+com.tcl.wifi.resources.overlay             # FMTV PROTECTED
+com.tcl.interactive                        # ADRI protected (others disable it: conflict -> keep)
+com.google.android.partnersetup            # ADRI protected
+com.google.android.onetimeinitializer      # ADRI protected
+com.google.android.apps.mediashell         # Chromecast built-in. FMTV, ADRI protected
+com.google.android.gms                     # Google Play services. FMTV PROTECTED
+com.google.android.gsf                     # FMTV PROTECTED
+com.android.vending                        # Play Store. FMTV PROTECTED
+com.google.android.webview                 # FMTV PROTECTED
+com.android.location.fused                 # A TCL 43S5400A boot-looped with only this off (CYTV #2803)

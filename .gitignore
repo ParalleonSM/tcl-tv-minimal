@@ -1,0 +1,11 @@
+# What the scripts learn about a TV (IP-named folders, package snapshots): stays on the Mac that ran them
+state/
+# Signing keys and local build settings never go in the repo
+*.keystore
+*.jks
+launcher/config.properties
+launcher/out/
+launcher/FreeMyTV.apk
+.DS_Store
+__pycache__/
+tests/.tmp/

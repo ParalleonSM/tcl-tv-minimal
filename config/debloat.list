@@ -1,0 +1,51 @@
+# TCL Google TV debloat list — read by scripts/debloat.sh (one package per line, `#` starts a comment).
+#
+# Method: `pm disable-user --user 0 <package>` — the app stays installed with its data; scripts/rollback.sh (or
+# `adb shell pm enable <package>`) brings it back. Nothing is uninstalled, nothing needs root.
+#
+# Rule for this list (see DEPLOY.md "Where the list comes from"): a line is ACTIVE only if
+#   1. at least two independent sources below disable it on TCL TVs, AND
+#   2. no source protects it (Free My TV's PROTECTED set, AdrianSantamariaR's catalog "protected": true), AND
+#   3. it is a promo / demo / telemetry / manual / unused-extra app, not a TV, input, remote or system piece.
+# Lines under OPTIONAL are commented out: real features some people use. Uncomment one to disable it too.
+# config/do-not-touch.list is checked before every disable and wins over anything written here.
+#
+# Sources (all read for this list on 2026-11-26/27; commit = the one read):
+#   FMTV  Free My TV, HomeMode.java DEBLOAT[] and PROTECTED — github.com/simbasjungles/free-my-tv @ 0e33f168b8
+#   CYTV  CleanYourTV, examples/<tcl-*>/debloat*.txt (95 TCL lists, 92 TCL example folders; "n" = how many lists
+#         disable it) — github.com/Gathin23/cleanyourtv @ be6087056a
+#   IMAG  imaginator/TCL-TV-Debloat, disable-tcl-bloatware.sh (Lnn = line) — @ e069e413ae
+#   LIVV  livvaa/TCL-Google-TV-Debloat-Optimizer, tcl-debloat-optimizer.ps1 (Lnn = line) — @ a10680aa23
+#   ADRI  AdrianSantamariaR/tcl-tv-debloat, tcl_tv_debloat/data/catalog.json (labels, "protected") — @ 9a05dbd73e
+#
+# NOTE: Free My TV's own switch (install-launcher.sh, step "Home Screen -> Free My TV") already turns off several of
+# these by itself (marked "FMTV-switch"). Listing them here too is harmless: debloat.sh skips anything already off and
+# records only what IT turned off, so rollback.sh and Free My TV's "Original" never step on each other.
+
+# --- SAFE: retail demo / hotel mode
+com.tcl.esticker                    # TCL E-Sticker, retail demo stickers. FMTV-switch; CYTV 80; IMAG L14; LIVV L232
+com.tcl.exhibit                     # TCL Exhibit, store demo mode. FMTV-switch; CYTV 24; IMAG L15; LIVV L196
+com.tcl.hotelmenu                   # TCL hotel-mode portal. FMTV-switch; CYTV 19; IMAG L22
+
+# --- SAFE: promos, nags, telemetry
+com.tcl.messagebox                  # TCL push messages and promos. FMTV-switch; CYTV 66; IMAG L16; LIVV L197
+com.tcl.usercenter                  # TCL account sign-in nags. FMTV-switch; CYTV 57; IMAG L19; LIVV L200
+com.tcl.logkit                      # TCL log capture and upload. FMTV-switch; CYTV 37; IMAG L26; LIVV L194
+com.google.android.feedback         # Google "send feedback". CYTV 76; LIVV L205
+
+# --- SAFE: manuals
+com.tcl.repairguide                 # TCL repair guide / self-diagnosis. FMTV-switch; CYTV 29; IMAG L25; LIVV L234
+com.tcl.ocean.instructions          # TCL e-manual. FMTV-switch; CYTV 37; IMAG L24; LIVV L235
+
+# --- SAFE: preloaded extras that clutter an Apple TV-style home
+com.google.android.play.games       # Google Play Games. FMTV-switch; CYTV 64; LIVV L212
+com.google.android.youtube.tvmusic  # YouTube Music (comment out if you use it). FMTV-switch; CYTV 37; LIVV L249
+com.google.android.videos           # Google TV / Play Movies storefront app. CYTV 51; LIVV L209
+com.tcl.smartalexa                  # TCL's Amazon Alexa integration (not Google Assistant). CYTV 43; IMAG L32; LIVV L231
+
+# --- OPTIONAL (commented out = left alone). Uncomment the ones you never use.
+# com.tcl.magiconnectfree           # T-Cast / MagiConnect phone mirroring. FMTV-switch; CYTV 14 (12 keep); IMAG L27; LIVV L230
+# com.tcl.miracast                  # Miracast screen mirroring. FMTV-switch; CYTV 18 (17 keep)
+# com.tcl.ui_mediaCenter            # USB media player. CYTV 38 (14 keep); IMAG L30; LIVV L238
+# com.tcl.gallery                   # USB photo gallery + TCL screensaver. CYTV 17 (7 keep); IMAG L17
+# com.google.android.syncadapters.calendar  # Calendar sync, no calendar on a TV. CYTV 38; LIVV L206
