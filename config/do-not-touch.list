@@ -1,7 +1,8 @@
 # DO NOT TOUCH — scripts/debloat.sh refuses every package here, whatever config/debloat.list says.
 # (It also refuses Android's core pieces by pattern: see CORE_RE in scripts/lib.sh.)
 # Sources: same keys as config/debloat.list (FMTV = Free My TV PROTECTED; ADRI = catalog "protected": true;
-# CYTV = CleanYourTV's "Keep:" notes and tools/disable.sh guards).
+# CYTV = CleanYourTV's "Keep:" notes and tools/disable.sh guards; Q651 / PR78 = the TCL 55Q651G and 50Q651G-CA
+# reports described at the top of config/debloat.list, read 2026-11-27 for the owner's 50Q651G).
 
 # --- The home screen and its fallbacks: owned by the launcher switch (install-launcher.sh / rollback.sh), never by
 #     the debloat list. Disabling these by hand is how TVs end up on a black screen.
@@ -16,8 +17,10 @@ com.tcl.keycustomfunctionservice           # TCL remote keys; registers Fallback
 # --- Picture, sound, HDMI inputs, live TV
 com.tcl.tv                                 # TCL Live TV / HDMI app. FMTV, CYTV keep
 com.tcl.tvinput                            # TCL TV input service (HDMI). FMTV, CYTV keep
-com.tcl.channelplus                        # Live TV's channel source: off = black screen. FMTV PROTECTED (CYTV disables it: conflict -> keep)
-com.tcl.ttvs                               # TCL TV core services. FMTV, ADRI protected (CYTV disables it: conflict -> keep)
+com.tcl.channelplus                        # Live TV's channel source: off = black screen. FMTV PROTECTED (CYTV disables it: conflict -> keep).
+                                           #   55Q651G: with no antenna channels it is Live TV's only source; re-enabled there (Q651 L50, L214-217)
+com.tcl.ttvs                               # TCL TV core services. FMTV, ADRI protected (CYTV disables it: conflict -> keep).
+                                           #   55Q651G: kept for firmware updates (Q651 L47); hosts TCL's updater on two other G10_4K_US_NF sets (same file L94-96 55QM5K, L137-138 S551G)
 com.tvos                                   # FMTV PROTECTED
 com.tcl.systemserver                       # FMTV PROTECTED
 com.tcl.system.server                      # FMTV PROTECTED
@@ -26,7 +29,8 @@ com.tcl.hearaid                            # Hearing assistance / audio adaptati
 com.tcl.suspension                         # The Input button's source panel / quick controls. FMTV, ADRI protected, CYTV keep
 com.tcl.dashboard                          # TCL dashboard. FMTV PROTECTED
 com.tcl.gamebar                            # Game mode / VRR overlay. FMTV PROTECTED
-com.tcl.airplay2                           # AirPlay receiver. FMTV PROTECTED
+com.tcl.airplay2                           # AirPlay receiver. FMTV PROTECTED. Works together with com.realtek.airplay2 (Q651 L259-260)
+com.realtek.airplay2                       # AirPlay's other half on this Realtek G10 platform: 55Q651G + 50Q651G-CA keep both (Q651 L259-260; PR78)
 
 # --- Remote, Bluetooth, keyboard, mic (JARVIS needs the mic and speech services)
 com.tcl.tcl_bt_rcu_service                 # Bluetooth remote. FMTV PROTECTED
@@ -36,7 +40,8 @@ com.tcl.keyhelp                            # Remote keys. FMTV PROTECTED
 com.tcl.globalkeyoverlay                   # FMTV PROTECTED
 com.tcl.inputmethod.international          # On-screen keyboard. FMTV, CYTV keep
 com.google.android.inputmethod.latin       # Gboard. FMTV PROTECTED
-com.google.android.tv.remote.service       # Google TV remote service (phone remote). FMTV, ADRI protected
+com.google.android.tv.remote.service       # Google TV remote service (phone remote). FMTV, ADRI protected.
+                                           #   55Q651G: the remote's MIC button goes through it; off = no voice (Q651 L208-213, CYTV #1441)
 com.google.android.katniss                 # Google Assistant / voice search AND speech recognition used by JARVIS. ADRI protected
 com.google.android.tts                     # Text-to-speech: JARVIS speaks with it
 com.google.android.marvin.talkback         # Screen reader (accessibility)
@@ -44,8 +49,11 @@ com.google.android.marvin.talkback         # Screen reader (accessibility)
 # --- Setup, settings, updates, system UI, store, web
 com.tcl.settings                           # FMTV PROTECTED
 com.tcl.initsetup                          # TCL first setup. FMTV, ADRI protected
-com.tcl.useragreement                      # FMTV PROTECTED
-com.tcl.partnercustomizer                  # FMTV PROTECTED (CYTV disables it: conflict -> keep)
+com.tcl.useragreement                      # FMTV PROTECTED. 50Q651G-CA keeps it: queried by other TCL apps (PR78)
+com.tcl.providers.config                   # TCL config provider, queried by other TCL apps: kept on the 50Q651G-CA (PR78); "never disable"
+                                           #   on the 65Q650G Q6 (CYTV examples/tcl-65q650g)
+com.tcl.partnercustomizer                  # FMTV PROTECTED (CYTV disables it: conflict -> keep).
+                                           #   55Q651G: the remote's YouTube button goes through it; kept there (Q651 L48-49)
 com.tcl.tv.tclhome_passive                 # FMTV PROTECTED (CYTV disables it: conflict -> keep)
 com.tcl.waterfall.overseas                 # TCL Channel; partnercustomizer's key opens it. FMTV PROTECTED (conflict -> keep)
 com.tcl.guard                              # TCL TV Guard. FMTV PROTECTED (conflict -> keep)
