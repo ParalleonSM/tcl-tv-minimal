@@ -89,7 +89,7 @@ EOF
     [ "$HP" != "$LAUNCHER_PKG" ] && [ -n "$HP" ] && break
     is_dry && break
     [ "$waited" -ge "$WAIT_S" ] && die "Still the launcher after $((WAIT_S / 60)) min. Run again with --force." 6
-    sleep 5; waited=$((waited + 5))
+    nap 5; waited=$((waited + 5))
   done
   ok "Original: Home opens $HP"
 else
@@ -152,7 +152,7 @@ fi
 
 step "4/4  Checking"
 tv_do shell input keyevent KEYCODE_HOME >/dev/null
-is_dry || sleep 3
+is_dry || nap 3
 TOP="$(top_activity "$GOOGLE_HOME")"
 case "$TOP" in
   "$GOOGLE_HOME_PKG"/*) ok "Home opens the stock Google TV home ($TOP)" ;;

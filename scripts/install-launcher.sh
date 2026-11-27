@@ -94,7 +94,7 @@ fi
 step "4/6  Proving it runs (before it becomes Home)"
 START="$(tv_do shell am start -W -n "$LAUNCHER_PKG/.HomeActivity")"
 is_dry || printf '%s\n' "$START" | grep -qE 'Status: ok|Complete' || die "It didn't start: $START" 5
-is_dry || sleep 4
+is_dry || nap 4
 TOP="$(top_activity "$LAUNCHER_PKG/.HomeActivity")"
 case "$TOP" in
   "$LAUNCHER_PKG"/*) ok "on screen: $TOP" ;;
@@ -104,7 +104,7 @@ STATUS="$(control_call '{"action":"status"}' '{"ok":true,"say":"All systems nomi
 case "$STATUS" in *'"ok":true'*) ok "command layer answers: $(printf '%s' "$STATUS" | cut -c1-120)" ;;
   *) warn "command layer didn't answer as expected ($STATUS). The launcher runs; agent control may not." ;; esac
 tv_do shell input keyevent KEYCODE_HOME >/dev/null
-is_dry || sleep 3
+is_dry || nap 3
 TOP="$(top_activity "$GOOGLE_HOME")"
 case "$TOP" in
   "$LAUNCHER_PKG"/*) warn "Home already opens the new launcher (switched earlier)." ;;
@@ -138,7 +138,7 @@ EOF
     say "   the TV shows Free My TV's home screen.)"
     read -r _ || true
     "$ADB" connect "$TV" >/dev/null 2>&1 || true
-    sleep 2
+    nap 2
   fi
   waited=0
   while :; do
@@ -151,14 +151,14 @@ EOF
       120) say "  … still waiting. On TCL, a background killer can stop the switch: wait a minute or two, then press Home." ;;
       300) say "  … still waiting. If the TV said 'forget the network and connect again', do that, then switch again." ;;
     esac
-    sleep 5; waited=$((waited + 5))
+    nap 5; waited=$((waited + 5))
   done
   ok "the switch went through"
 fi
 
 step "6/6  Checking Home"
 tv_do shell input keyevent KEYCODE_HOME >/dev/null
-is_dry || sleep 3
+is_dry || nap 3
 TOP="$(top_activity "$LAUNCHER_PKG/.HomeActivity")"
 case "$TOP" in
   "$LAUNCHER_PKG"/*) ok "Home opens the new launcher ($TOP)" ;;

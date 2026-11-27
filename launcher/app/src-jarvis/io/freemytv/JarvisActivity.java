@@ -116,7 +116,22 @@ public class JarvisActivity extends Activity implements RecognitionListener {
 
     private void greetThenListen() {
         set(SPEAKING, "", persona.listening());
-        voice.say(reply, this::listen);
+        speakThen(reply, this::listen);
+    }
+
+    /**
+     * Speaks, then runs `after` exactly once: when speech ends, or after a generous timeout if the TV's speech engine
+     * never answers (no engine, or it hung) — so JARVIS can't get stuck on "speaking".
+     */
+    private void speakThen(String text, Runnable after) {
+        final boolean[] ran = {false};
+        Runnable once = () -> {
+            if (ran[0]) return;
+            ran[0] = true;
+            if (after != null) after.run();
+        };
+        voice.say(text, once);
+        main.postDelayed(once, 3_000 + 90L * (text == null ? 0 : text.length()));
     }
 
     private boolean micAllowed() {
@@ -125,7 +140,7 @@ public class JarvisActivity extends Activity implements RecognitionListener {
 
     private void listen() {
         if (closing || isFinishing()) return;
-        if (typing) return;
+        if (typing || state == LISTENING) return;
         if (recognizer != null && micAllowed()) {
             Intent i = recognizeIntent();
             i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
@@ -236,7 +251,7 @@ public class JarvisActivity extends Activity implements RecognitionListener {
         closeAfterReply = r.optBoolean("ok") && (action.equals("launch_app") || action.equals("hdmi") || action.equals("live_tv")
                 || action.equals("home") || action.equals("search") || action.equals("settings") || action.equals("jarvis"));
         set(SPEAKING, heardText, words);
-        voice.say(words, () -> {
+        speakThen(words, () -> {
             if (closeAfterReply) { closing = true; finish(); return; }
             set(IDLE, heard, reply);
             if (typing) { typed.requestFocus(); return; }
@@ -269,7 +284,7 @@ public class JarvisActivity extends Activity implements RecognitionListener {
                 return true;
             }
             if (!typing && (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER)) {
-                if (state != LISTENING) { main.removeCallbacksAndMessages(null); listen(); }
+                if (state == IDLE) { main.removeCallbacksAndMessages(null); listen(); }   // not while speaking or busy
                 return true;
             }
             if (!typing && code == KeyEvent.KEYCODE_DPAD_DOWN) {

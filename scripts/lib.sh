@@ -40,6 +40,7 @@ ok()   { printf '%s  ok%s  %s\n' "$C_G" "$C_0" "$*" >&3; }
 warn() { printf '%swarn%s  %s\n' "$C_Y" "$C_0" "$*" >&3; }
 die()  { printf '%sSTOP%s  %s\n' "$C_R" "$C_0" "$1" >&2; exit "${2:-1}"; }
 is_dry() { [ "$DRY_RUN" -eq 1 ]; }
+nap() { [ "${TTM_FAST:-0}" = 1 ] || sleep "$1"; }   # TTM_FAST=1: tests against tests/fake-adb don't wait
 
 # The command as a human would type it (for logs and --dry-run).
 show_cmd() {
@@ -60,7 +61,9 @@ tv_do() {
     return 0
   fi
   printf '%s  +  %s%s\n' "$C_D" "$(show_cmd -s "$TV" "$@")" "$C_0" >&3
-  "$ADB" -s "$TV" "$@" 2>&1 | tr -d '\r'
+  # adb passes the TV's exit status through; callers judge the answer's text ("Success", "new state: …"), so a
+  # non-zero status must not end the script (set -e/pipefail) before it can explain what happened.
+  { "$ADB" -s "$TV" "$@" 2>&1 || true; } | tr -d '\r'
 }
 
 # tv_read <dry-run answer> <adb args...>: a read-only command. Dry-run: printed, and <dry-run answer> comes back.
@@ -71,7 +74,7 @@ tv_read() {
     printf '%s\n' "$placeholder"
     return 0
   fi
-  "$ADB" -s "$TV" "$@" 2>&1 | tr -d '\r'
+  { "$ADB" -s "$TV" "$@" 2>&1 || true; } | tr -d '\r'
 }
 
 # sh_read <dry-run answer> <shell command>: tv_read for `adb shell`.
@@ -179,7 +182,7 @@ tv_connect() {
         fi ;;
       *offline*) [ $((i % 10)) -eq 0 ] && "$ADB" connect "$TV" >/dev/null 2>&1 ;;
     esac
-    sleep 2
+    nap 2
   done
   die "The TV never authorized this Mac (state: $st). Accept the prompt on the TV, then run this again." 4
 }
@@ -335,7 +338,7 @@ push_config() {
   else
     printf '%s  +  adb -s %s exec-in content write --uri %s/config.json < %s%s\n' "$C_D" "$TV" "$CONTROL_URI" "$f" "$C_0" >&3
     "$ADB" -s "$TV" exec-in content write --uri "$CONTROL_URI/config.json" < "$f" 2>&1 | tr -d '\r' >&3 || true
-    sleep 1   # the launcher takes the file when the write closes (on its main thread); give it a moment
+    nap 1   # the launcher takes the file when the write closes (on its main thread); give it a moment
   fi
   reply="$(control_call '{"action":"reload_config"}' '{"ok":true,"config":"loaded"}')"
   case "$reply" in

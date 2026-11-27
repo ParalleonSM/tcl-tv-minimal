@@ -157,7 +157,11 @@ public class HomeActivity extends Activity {
     private static final long TWICE_MS = 700;
 
     /** config.json changed (pushed from the computer, or the JARVIS toggle): draw the home screen again with it. */
-    private final Runnable configChanged = this::recreate;
+    private final Runnable configChanged = () -> {
+        prefsVersion = Prefs.version;            // this recreate covers it: no second one in onResume
+        HomeData.get(this).settingsChanged();    // weather/prices may have been switched on or off
+        recreate();
+    };
 
     @Override protected void onDestroy() {
         UserConfig.unlisten(configChanged);

@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2086,SC2013,SC2001  # a test fake: package names are bare words, splitting is intended
+# fake-adb — a pretend TCL Google TV for testing the scripts without a TV. NOT a real adb.
+# It keeps the TV's state in $FAKE_TV (a folder) and answers the commands the scripts send, the way Android does
+# (the answers' shapes are the ones the scripts parse: "new state: disabled-user", "Success", "Result: Bundle[…]").
+#
+# Knobs (environment):
+#   FAKE_TV=<dir>              state folder (created by tests/run-script-tests.sh: fake_tv_init)
+#   FAKE_KIND=google-tv|android-tv|fire-tv|roku     what the device is
+#   FAKE_SWITCH=auto|never     the in-app switch: auto = happens 2 polls after Free My TV's settings open
+#   FAKE_ORIGINAL=auto|never   the in-app "Original": auto = happens 2 polls after the settings open (while switched)
+#   FAKE_FAIL_PKG=<pkg>        pm disable-user fails for this package
+#   FAKE_INSTALL=ok|incompatible
+#   FAKE_UNAUTH=<n>            get-state says "unauthorized" n times first
+set -u
+D="${FAKE_TV:?FAKE_TV not set}"
+LOG="$D/adb.log"
+echo "adb $*" >> "$LOG"
+KIND="${FAKE_KIND:-google-tv}"
+
+kv_get() { [ -f "$D/$1" ] && sed -n "s/^$2=//p" "$D/$1" | tail -n 1; }
+kv_put() { touch "$D/$1"; grep -v "^$2=" "$D/$1" > "$D/$1.tmp" || true; echo "$2=$3" >> "$D/$1.tmp"; mv "$D/$1.tmp" "$D/$1"; }
+kv_del() { [ -f "$D/$1" ] && { grep -v "^$2=" "$D/$1" > "$D/$1.tmp" || true; mv "$D/$1.tmp" "$D/$1"; }; return 0; }
+pstate() { awk -v p="$1" '$1==p {print $2}' "$D/packages"; }
+pset() { awk -v p="$1" -v s="$2" '$1==p {$2=s} {print}' "$D/packages" > "$D/packages.tmp" && mv "$D/packages.tmp" "$D/packages"; }
+installed() { [ -n "$(pstate "$1")" ]; }
+counter() { local n; n=$(( $(cat "$D/$1" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$D/$1"; echo "$n"; }
+home_pkg() { cut -d/ -f1 "$D/home"; }
+
+# The in-app switch / Original, as Free My TV would do them (HomeMode.applyFree / applyOriginal, in that order).
+maybe_switch() {
+  [ -f "$D/settings_open" ] || return 0
+  if [ "$(home_pkg)" != io.freemytv ] && [ "${FAKE_SWITCH:-auto}" = auto ] && [ "$(counter switch_polls)" -ge 2 ]; then
+    pset com.google.android.tungsten.setupwraith disabled-user      # setup app first
+    pset com.google.android.apps.tv.launcherx disabled-user         # then the stock home
+    pset com.google.android.apps.tv.dreamx disabled-user
+    for p in com.tcl.esticker com.tcl.exhibit com.tcl.messagebox; do pset "$p" disabled-user; done   # its own DEBLOAT
+    echo "io.freemytv/.HomeActivity" > "$D/home"
+    kv_put settings_global free_my_tv_disabled "com.google.android.apps.tv.dreamx,com.google.android.apps.tv.launcherx,com.google.android.tungsten.setupwraith,com.tcl.esticker,com.tcl.exhibit,com.tcl.messagebox"
+    kv_put settings_secure screensaver_components "io.freemytv/io.freemytv.Screensaver"
+    kv_put settings_secure enabled_accessibility_services "io.freemytv/io.freemytv.RemoteKeyService"
+    rm -f "$D/settings_open" "$D/switch_polls"
+    echo "SWITCHED" >> "$LOG"
+  elif [ "$(home_pkg)" = io.freemytv ] && [ "${FAKE_ORIGINAL:-auto}" = auto ] && [ "$(counter original_polls)" -ge 2 ]; then
+    rec="$(kv_get settings_global free_my_tv_disabled)"
+    pset com.google.android.apps.tv.launcherx enabled
+    for p in $(echo "$rec" | tr ',' ' '); do [ "$p" = com.google.android.tungsten.setupwraith ] || pset "$p" enabled; done
+    echo "com.google.android.apps.tv.launcherx/.home.HomeActivity" > "$D/home"
+    pset com.google.android.tungsten.setupwraith enabled
+    kv_del settings_global free_my_tv_disabled
+    kv_put settings_secure screensaver_components "com.google.android.apps.tv.dreamx/.DreamService"
+    kv_del settings_secure enabled_accessibility_services
+    rm -f "$D/settings_open" "$D/original_polls"
+    echo "ORIGINAL" >> "$LOG"
+  fi
+}
+
+shell() {
+  local c="$*"
+  case "$c" in
+    "getprop "*) kv_get props "${c#getprop }" ;;
+    "pm list features")
+      [ "$KIND" = fire-tv ] && echo "feature:amazon.hardware.fire_tv"
+      echo "feature:android.hardware.wifi"; echo "feature:android.software.leanback" ;;
+    "pm list packages"*)
+      flag="${c#pm list packages}"; flag="${flag# }"
+      while read -r p s; do
+        case "$flag" in -d) [ "$s" = enabled ] && continue ;; -e) [ "$s" != enabled ] && continue ;; esac
+        echo "package:$p"
+      done < "$D/packages" ;;
+    "pm disable-user --user 0 "*)
+      p="${c##* }"
+      if [ "$p" = "${FAKE_FAIL_PKG:-}" ]; then echo "Error: java.lang.IllegalArgumentException: Cannot disable a protected package: $p"; return; fi
+      if ! installed "$p"; then echo "Error: java.lang.IllegalArgumentException: Unknown package: $p"; return; fi
+      pset "$p" disabled-user; echo "Package $p new state: disabled-user" ;;
+    "pm enable "*)
+      p="${c##* }"; installed "$p" || { echo "Error: Unknown package: $p"; return; }
+      pset "$p" enabled; echo "Package $p new state: enabled" ;;
+    "pm grant "*) : ;;
+    "pm path "*) installed "${c##* }" && echo "package:/data/app/${c##* }/base.apk" ;;
+    "cmd package resolve-activity --brief"*HOME*)
+      maybe_switch
+      echo "priority=0 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=true"; cat "$D/home" ;;
+    "cmd package query-activities --brief"*HOME*)
+      [ "$(pstate com.google.android.apps.tv.launcherx)" = enabled ] && echo "com.google.android.apps.tv.launcherx/.home.HomeActivity"
+      [ "$(pstate com.google.android.tungsten.setupwraith)" = enabled ] && echo "com.google.android.tungsten.setupwraith/.RecoveryActivity"
+      [ "$(pstate io.freemytv)" = enabled ] && echo "io.freemytv/.HomeActivity"
+      echo "com.tcl.keycustomfunctionservice/.FallbackHome" ;;
+    "cmd role get-role-holders android.app.role.HOME") home_pkg ;;
+    "cmd package set-home-activity "*)
+      comp="${c#cmd package set-home-activity }"; comp="${comp//\'/}"
+      if [ "$(pstate "${comp%%/*}")" = enabled ]; then echo "$comp" > "$D/home"; echo "Success"; else echo "Error: component is disabled"; fi ;;
+    "settings get global "*) v="$(kv_get settings_global "${c#settings get global }")"; echo "${v:-null}" ;;
+    "settings get secure "*) v="$(kv_get settings_secure "${c#settings get secure }")"; echo "${v:-null}" ;;
+    "settings put global "*) set -- ${c#settings put global }; kv_put settings_global "$1" "$2" ;;
+    "settings put secure "*) set -- ${c#settings put secure }; kv_put settings_secure "$1" "$2" ;;
+    "settings delete global "*) kv_del settings_global "${c#settings delete global }"; echo "Deleted 1 rows" ;;
+    "settings delete secure "*) kv_del settings_secure "${c#settings delete secure }"; echo "Deleted 1 rows" ;;
+    "dumpsys wifi") for o in $(cat "$D/wifi_owners"); do echo "  ID: 0 SSID: \"home\" cname=$o"; done ;;
+    "dumpsys package "*)
+      p="${c#dumpsys package }"
+      installed "$p" || { echo "Unable to find package: $p"; return; }
+      echo "Packages:"; echo "  Package [$p] (1a2b3c):"
+      [ "$p" = io.freemytv ] && { echo "    versionName=1.5-tcl.1"; echo "    requested permissions:"; echo "      android.permission.RECORD_AUDIO"; } ;;
+    "for p in "*)
+      for p in $(echo "${c#for p in }" | sed 's/; do.*//'); do
+        if ! installed "$p"; then echo "unknown $p"; elif grep -qx "$p" "$D/input_pkgs" 2>/dev/null; then echo "keep $p"; else echo "- $p"; fi
+      done; echo checked ;;
+    appops*) [ -f "$D/no_appops" ] && echo "Error: Unknown operation string: AUTO_START" ;;
+    "am start -W -n io.freemytv/.HomeActivity")
+      installed io.freemytv || { echo "Error: Activity class does not exist."; return; }
+      echo "io.freemytv/.HomeActivity" > "$D/top"; echo "Starting: Intent { cmp=io.freemytv/.HomeActivity }"; echo "Status: ok" ;;
+    "am start -n io.freemytv/.SettingsActivity")
+      echo "io.freemytv/.SettingsActivity" > "$D/top"; touch "$D/settings_open"; echo "Starting: Intent { cmp=io.freemytv/.SettingsActivity }" ;;
+    "input keyevent KEYCODE_HOME") cp "$D/home" "$D/top" ;;
+    "dumpsys activity activities") echo "  topResumedActivity=ActivityRecord{1f2e3d u0 $(cat "$D/top") t42}" ;;
+    "content call --uri content://io.freemytv.control --method command --arg "*)
+      installed io.freemytv || { echo "Error while accessing provider:io.freemytv.control"; return; }
+      action="$(echo "$c" | sed -n 's/.*"action":"\([a-z_]*\)".*/\1/p')"
+      echo "Result: Bundle[{reply={\"ok\":true,\"action\":\"$action\",\"say\":\"fake reply\"}}]" ;;
+    "content read --uri content://io.freemytv.control/config.json") cat "$D/config.json" 2>/dev/null || echo '{}' ;;
+    *) echo "fake-adb: unhandled shell command: $c" >> "$LOG"; echo "/system/bin/sh: unknown command" ;;
+  esac
+}
+
+# adb [-s serial] <cmd> ...
+if [ "${1:-}" = -s ]; then shift 2; fi
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  connect)
+    if [ "$KIND" = roku ]; then echo "failed to connect to '$1': Connection refused"; exit 1; fi
+    echo "connected to $1" ;;
+  disconnect) echo "disconnected $*" ;;
+  get-state)
+    if [ "$(counter unauth_seen)" -le "${FAKE_UNAUTH:-0}" ]; then echo "error: device unauthorized."; exit 1; fi
+    echo device ;;
+  shell) shell "$@" ;;
+  install)
+    if [ "${FAKE_INSTALL:-ok}" = incompatible ]; then
+      echo "adb: failed to install x.apk: Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package io.freemytv signatures do not match newer version; ignoring!]"; exit 1
+    fi
+    installed io.freemytv || echo "io.freemytv enabled" >> "$D/packages"
+    echo "Performing Streamed Install"; echo "Success" ;;
+  uninstall)
+    grep -v "^$1 " "$D/packages" > "$D/packages.tmp"; mv "$D/packages.tmp" "$D/packages"; echo "Success" ;;
+  exec-in) cat > "$D/config.json" ;;
+  *) echo "fake-adb: unhandled: $cmd $*" >> "$LOG"; exit 1 ;;
+esac
