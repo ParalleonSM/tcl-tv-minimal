@@ -30,7 +30,35 @@ say "  brand / maker   $TV_BRAND / $TV_MAKER"
 say "  model / device  $TV_MODEL / $TV_DEVICE"
 say "  Android         $TV_ANDROID (SDK $TV_SDK)"
 say "  build           $FINGERPRINT"
+PRODUCT="$(prop ro.product.name G10_4K_US_NF)"
+SWVER="$(prop ro.software.version_id V8-R75PT01-LF1V534)"
+say "  product         ${PRODUCT:-<not reported>}"
+say "  software        ${SWVER:-<not reported>}"
 [ "${TV_SDK:-0}" -ge 26 ] 2>/dev/null || is_dry || die "Android $TV_ANDROID is older than 8.0: the launcher needs Android 8 (SDK 26)." 3
+
+step "Model check"
+# The owner's set is a TCL 50Q651G (Q6 series). What the sources say (read 2026-11-27, NIGHT_REPORT.md "50Q651G
+# verification"):
+# - 50Q651G-CA: device G10, product G10_4K_US_NF, Android 12 (STT2.230203.001), software V8-R75PT01-LF1V499
+#   (CleanYourTV PR #78, closed unmerged, @ b74bb63c2b). 55Q651G: product G10_4K_US_NF, software V8-R75PT01-LF1V534
+#   (CleanYourTV examples/tcl-g10-google-tv/debloat.txt L45-46 @ be6087056a).
+# - TCL Google TVs report a generic ro.product.model ("Smart TV Pro"; CleanYourTV docs/devices/tcl-75qm751g-qm7.md,
+#   tcl-55p71b-pro-g09.md: "not exposed by ro.product.model"). What a Q651G itself returns is NOT confirmed, so the
+#   "50Q651G" string is matched if it shows up, and otherwise the platform.
+# - G10_4K_US_NF is also the 55QM5K and S551G (same file L89, L130): the platform alone can't prove the model.
+case "$TV_MODEL $PRODUCT" in
+  *[Qq]651[Gg]*)
+    ok "Known model: TCL $TV_MODEL (Q6 series) — package checked against this model's reports (see NIGHT_REPORT.md)" ;;
+  *)
+    if [ "$TV_DEVICE" = G10 ] && [ "$PRODUCT" = G10_4K_US_NF ]; then
+      ok "Platform G10 / G10_4K_US_NF: the one TCL's 50Q651G and 55Q651G (Q6 series) report — package checked for it"
+      say "  TCL reports a generic model name (\"$TV_MODEL\"), so the TV can't say it's a 50Q651G: the sticker on the back"
+      say "  or Settings > System > About shows it. (55QM5K and S551G sets share this platform.)"
+    else
+      say "  Not the platform of the TCL 50Q651G (G10 / G10_4K_US_NF) this package was checked against. The lists still"
+      say "  suit TCL Google TVs; anything your set doesn't have is skipped."
+    fi ;;
+esac
 
 step "Home screen"
 HOME_PKG="$(home_package "$GOOGLE_HOME")"
@@ -79,7 +107,7 @@ else
   [ -f "$SD/baseline-disabled.txt" ] || cp "$SD/baseline-$STAMP-disabled.txt" "$SD/baseline-disabled.txt"
   {
     echo "when=$STAMP"; echo "tv=$TV"; echo "brand=$TV_BRAND"; echo "maker=$TV_MAKER"; echo "model=$TV_MODEL"
-    echo "device=$TV_DEVICE"; echo "android=$TV_ANDROID"; echo "sdk=$TV_SDK"; echo "fingerprint=$FINGERPRINT"
+    echo "device=$TV_DEVICE"; echo "product=$PRODUCT"; echo "software=$SWVER"; echo "android=$TV_ANDROID"; echo "sdk=$TV_SDK"; echo "fingerprint=$FINGERPRINT"
     echo "kind=$TV_KIND"; echo "home=$HOME_PKG"; echo "screensaver=$SAVER"
   } > "$SD/detect-$STAMP.txt"
   ok "saved to $SD/ ($(printf '%s\n' "$ALL" | sed '/^$/d' | wc -l | tr -d ' ') packages, $(printf '%s\n' "$DISABLED" | sed '/^$/d' | wc -l | tr -d ' ') already disabled)"

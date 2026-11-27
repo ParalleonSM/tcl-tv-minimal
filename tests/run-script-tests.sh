@@ -197,6 +197,24 @@ echo '{ broken' > "$TMP/bad.json"
 rc=$(run "$ROOT/scripts/push-config.sh" "${IP[@]}" "$TMP/bad.json"); expect '[ "$rc" = 2 ]' "broken JSON refused before sending rc=$rc"
 
 # ---------------------------------------------------------------------------------------------------------------------
+SCEN="detect recognizes the owner's TCL 50Q651G (Q6)"
+fake_tv_init   # generic props: no product name
+rc=$(run "$ROOT/scripts/detect.sh" "${IP[@]}"); expect '[ "$rc" = 0 ]' "generic TCL rc=$rc"
+expect 'grep -q "Not the platform of the TCL 50Q651G" "$TMP/out.txt"' "generic TCL: says it isn't the checked platform"
+fake_tv_init
+echo "ro.product.name=G10_4K_US_NF" >> "$FAKE_TV/props"; echo "ro.software.version_id=V8-R75PT01-LF1V534" >> "$FAKE_TV/props"
+rc=$(run "$ROOT/scripts/detect.sh" "${IP[@]}"); expect '[ "$rc" = 0 ]' "G10_4K_US_NF rc=$rc"
+expect 'grep -q "ok  Platform G10 / G10_4K_US_NF" "$TMP/out.txt"' "Q651G platform recognized"
+expect '! grep -q "Known model" "$TMP/out.txt"' "platform alone is not claimed as the exact model"
+expect 'grep -q "^software=V8-R75PT01-LF1V534" "$ROOT"/state/127.0.0.9_5555/detect-*.txt' "software version saved in the snapshot"
+fake_tv_init
+sed -i.bak 's/^ro.product.model=.*/ro.product.model=50Q651G/' "$FAKE_TV/props"
+rc=$(run "$ROOT/scripts/detect.sh" "${IP[@]}"); expect '[ "$rc" = 0 ]' "50Q651G rc=$rc"
+expect 'grep -q "ok  Known model: TCL 50Q651G (Q6 series)" "$TMP/out.txt"' "50Q651G named explicitly"
+export FAKE_KIND=fire-tv
+rc=$(run "$ROOT/scripts/detect.sh" "${IP[@]}"); expect '[ "$rc" = 3 ] && ! grep -q "Known model" "$TMP/out.txt"' "Fire TV still refused before the model check rc=$rc"
+
+# ---------------------------------------------------------------------------------------------------------------------
 SCEN="--dry-run changes nothing and needs no TV"
 fake_tv_init
 cp "$FAKE_TV/packages" "$TMP/before"
